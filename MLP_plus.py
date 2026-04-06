@@ -140,19 +140,19 @@ class MLP:
                 self.bn_running_mean[l] = np.zeros((layer_sizes[l], 1))
                 self.bn_running_var[l] = np.ones((layer_sizes[l], 1))
 
-        # --- 创建优化器 ---
-        opt_map = {
-            "sgd":           SGD(lr=learning_rate, momentum=0.0),
-            "sgd_momentum":  SGD(lr=learning_rate, momentum=0.9),
-            "nesterov":      SGD(lr=learning_rate, momentum=0.9, nesterov=True),
-            "adam":          Adam(lr=learning_rate),
+        # --- 创建优化器 (工厂函数，每次调用创建独立实例) ---
+        opt_factory = {
+            "sgd":           lambda: SGD(lr=learning_rate, momentum=0.0),
+            "sgd_momentum":  lambda: SGD(lr=learning_rate, momentum=0.9),
+            "nesterov":      lambda: SGD(lr=learning_rate, momentum=0.9, nesterov=True),
+            "adam":          lambda: Adam(lr=learning_rate),
         }
-        if optimizer not in opt_map:
-            raise ValueError(f"Unknown optimizer: {optimizer}, choose from {list(opt_map.keys())}")
+        if optimizer not in opt_factory:
+            raise ValueError(f"Unknown optimizer: {optimizer}, choose from {list(opt_factory.keys())}")
 
-        # W 和 b 使用同一个优化器类的不同实例 (各自维护独立的动量/矩)
-        self.opt_W = opt_map[optimizer]
-        self.opt_b = opt_map[optimizer]
+        # W 和 b 各自维护独立的动量/矩
+        self.opt_W = opt_factory[optimizer]()
+        self.opt_b = opt_factory[optimizer]()
 
         # BN 参数也有独立的优化器
         if batchnorm:
